@@ -6,8 +6,32 @@ export class LPCore {
 	};
 
 	// Main functionallity
+	/**
+	 * Generates a password based on the given parameters.
+	 *
+	 * @async
+	 * @param {string} siteURL
+	 * @param {string} login
+	 * @param {string} masterPassword
+	 * @param {number} passwordIndex
+	 * @param {number} passwordLength
+	 * @param {boolean} includeLowerCase
+	 * @param {boolean} includeUpperCase
+	 * @param {boolean} includeNumbers
+	 * @param {boolean} includeSymbols
+	 * @returns {string}
+	 */
 	async getPW(siteURL,login,masterPassword, passwordIndex, passwordLength,
 				includeLowerCase, includeUpperCase, includeNumbers, includeSymbols) {
+
+		// TODO - Change once i need a feedback system for errors, for now just return an empty string if the length is invalid
+		if (passwordLength < 1) {
+			return "";
+		}
+
+		if (!includeLowerCase && !includeUpperCase && !includeNumbers && !includeSymbols) {
+			return "";
+		}
 
 		let charset
 
@@ -73,11 +97,11 @@ async function _generatePassword(siteURL,login,masterPassword,passwordIndex,pass
 		const encoder = new TextEncoder();
 		const userInputSalt = encoder.encode(siteURL + staticSecret + passwordIndex + login);
 
-		const keyMaterial = await window.crypto.subtle.importKey(
+		const keyMaterial = await globalThis.crypto.subtle.importKey(
 			"raw", encoder.encode(masterPassword), { name: "PBKDF2" }, false, ["deriveBits"]
 		);
 
-		const derivedBits = await window.crypto.subtle.deriveBits(
+		const derivedBits = await globalThis.crypto.subtle.deriveBits(
 			{ name: "PBKDF2", salt: userInputSalt, iterations: 300000, hash: "SHA-256" }, keyMaterial, passwordLength * 8
 		);
 
