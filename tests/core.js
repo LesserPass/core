@@ -63,7 +63,6 @@ if (!Test0001.match(/[a-z]/)
     && !Test0001.match(/[A-Z]/)
     && !Test0001.match(/[0-9]/)
     && Test0001.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -74,7 +73,6 @@ if (!Test0010.match(/[a-z]/)
     && !Test0010.match(/[A-Z]/)
     && Test0010.match(/[0-9]/)
     && !Test0010.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -85,7 +83,6 @@ if (!Test0011.match(/[a-z]/)
     && !Test0011.match(/[A-Z]/)
     && Test0011.match(/[0-9]/)
     && Test0011.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -96,7 +93,6 @@ if (!Test0100.match(/[a-z]/)
     && Test0100.match(/[A-Z]/)
     && !Test0100.match(/[0-9]/)
     && !Test0100.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -107,7 +103,6 @@ if (!Test0101.match(/[a-z]/)
     && Test0101.match(/[A-Z]/)
     && !Test0101.match(/[0-9]/)
     && Test0101.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -119,7 +114,6 @@ if (!Test0110.match(/[a-z]/)
     && Test0110.match(/[A-Z]/)
     && Test0110.match(/[0-9]/)
     && !Test0110.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -131,7 +125,6 @@ if (!Test0111.match(/[a-z]/)
     && Test0111.match(/[A-Z]/)
     && Test0111.match(/[0-9]/)
     && Test0111.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -142,7 +135,6 @@ if (Test1000.match(/[a-z]/)
     && !Test1000.match(/[A-Z]/)
     && !Test1000.match(/[0-9]/)
     && !Test1000.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -153,7 +145,6 @@ if (Test1001.match(/[a-z]/)
     && !Test1001.match(/[A-Z]/)
     && !Test1001.match(/[0-9]/)
     && Test1001.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -164,7 +155,6 @@ if (Test1010.match(/[a-z]/)
     && !Test1010.match(/[A-Z]/)
     && Test1010.match(/[0-9]/)
     && !Test1010.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -175,7 +165,6 @@ if (Test1011.match(/[a-z]/)
     && !Test1011.match(/[A-Z]/)
     && Test1011.match(/[0-9]/)
     && Test1011.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -186,7 +175,6 @@ if (Test1100.match(/[a-z]/)
     && Test1100.match(/[A-Z]/)
     && !Test1100.match(/[0-9]/)
     && !Test1100.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -197,7 +185,6 @@ if (Test1101.match(/[a-z]/)
     && Test1101.match(/[A-Z]/)
     && !Test1101.match(/[0-9]/)
     && Test1101.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -208,7 +195,6 @@ if (Test1110.match(/[a-z]/)
     && Test1110.match(/[A-Z]/)
     && Test1110.match(/[0-9]/)
     && !Test1110.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -219,7 +205,6 @@ if (Test1111.match(/[a-z]/)
     && Test1111.match(/[A-Z]/)
     && Test1111.match(/[0-9]/)
     && Test1111.match(/[^a-zA-Z0-9]/)) {
-
     passedTests += 1
 }
 
@@ -252,11 +237,30 @@ if (staticSecret1 != staticSecret2) {
 
 // Charset test - different charsets should yield different outputs
 totalTests += 1
+let LPC3 = new LPCore("AnotherStaticSecret","aklmnopqrtuvwxzABCDEFGHIKLMNOPQRSTUVWXYZ01245689!@#$%*?-_+")
 let charset1 = await LPC.getPW("lesserpass.org","CHARSET","MyAwesomeSecurePassword",0,16,true,true,true,true)
-let charset2 = await LPC.getPW("lesserpass.org","CHARSET","MyAwesomeSecurePassword",0,16,true,true,true,false)
+let charset2 = await LPC3.getPW("lesserpass.org","CHARSET","MyAwesomeSecurePassword",0,16,true,true,true,true)
 if (charset1 != charset2) {
     passedTests += 1
 }
+
+// --- Below are tests for the passmoji stuff
+
+// Same test as for PW generation - same inputs should yield same output across updates
+totalTests += 1
+let passmoji = await LPC.getPassMojis("MyAwesomeSecurePassword")
+if (passmoji[0] == "🤛" &&
+    passmoji[1] == "🐍" &&
+    passmoji[2] == "🏆") {
+    passedTests += 1
+ }
+
+// Different inputs should yield different outputs
+totalTests += 1
+let passmoji2 = await LPC.getPassMojis("MyAwesomeSecurePassword2")
+if (passmoji != passmoji2) {
+    passedTests += 1
+ }
 
 // ---
 
