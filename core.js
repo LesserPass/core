@@ -61,6 +61,12 @@ export class LPCore {
 		return password
 	};
 
+	/**
+	 * Used to give the user visible feedback about a hidden password field
+	 *
+	 * @param {string} masterPassword
+	 * @returns {Array<string>}
+	 */
 	getPassMojis(masterPassword) {
 	if (masterPassword.length > 0) {
 		const emojis = [
@@ -81,6 +87,80 @@ export class LPCore {
 
 		return [emoji1, emoji2, emoji3]
 		}
+	};
+
+	/**
+	 * Generates a HOTP Code according to the RFC 4226 standard.
+	 *
+	 * @async
+	 * @param {string} secret
+	 * @param {number} counter
+	 * @param {number} [digits=6]
+	 * @param {string} [algorithm="SHA-1"]
+	 * @returns {string}
+	 */
+	async getHOTP(secret,counter,digits = 6,algorithm = "SHA-1") {
+		const secretBytes = base32Decode(secret);
+		// 8-byte big-endian counter
+		const counterBuffer = new ArrayBuffer(8);
+		const view = new DataView(counterBuffer);
+		const high = Math.floor(counter / 0x100000000);
+		const low = counter >>> 0;
+		view.setUint32(0, high, false);
+		view.setUint32(4, low, false);
+		const key = await crypto.subtle.importKey(
+			"raw",
+			secretBytes,
+			{
+				name: "HMAC",
+				hash: algorithm
+			},
+			false,
+			["sign"]
+		);
+
+		const hmac = await crypto.subtle.sign(
+			"HMAC",
+			key,
+			counterBuffer
+		);
+		const hash = new Uint8Array(hmac);
+		const offset = hash[hash.length - 1] & 0x0f;
+		const binary =
+			((hash[offset] & 0x7f) << 24) |
+			((hash[offset + 1] & 0xff) << 16) |
+			((hash[offset + 2] & 0xff) << 8) |
+			(hash[offset + 3] & 0xff);
+		const otp = binary % (10 ** digits);
+		return otp.toString().padStart(digits, "0");
+	}
+
+	/**
+	 * Generates a TOTP Code according to the RFC 6238 standard.
+	 *
+	 * @async
+	 * @param {string} secret
+	 * @param {number} [digits=6]
+	 * @param {string} [algorithm="SHA-1"]
+	 * @param {number} [period=30]
+	 * @param {number} [timestamp=Date.now()]
+	 * @returns {string}
+	 */
+	async getTOTP(
+		secret,
+		digits = 6,
+		algorithm = "SHA-1",
+		period = 30,
+		timestamp = Date.now()
+	) {
+		const counter = Math.floor(timestamp / 1000 / period);
+
+		return await this.getHOTP(
+			secret,
+			counter,
+			digits,
+			algorithm
+		);
 	}
 };
 
@@ -210,4 +290,28 @@ function injectCharIntoPassword(password, charSubSet, ...usedCategories) {
 		}
 	}
 	return password;
+}
+
+
+// --- 2FA
+
+function base32Decode(input) {
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+	input = input
+		.replace(/=+$/, "")
+		.replace(/\s+/g, "")
+		.toUpperCase();
+
+	let bits = "";
+	for (const c of input) {
+		const value = alphabet.indexOf(c);
+		if (value === -1)
+			throw new Error("Invalid Base32");
+		bits += value.toString(2).padStart(5, "0");
+	}
+
+	const bytes = [];
+	for (let i = 0; i + 8 <= bits.length; i += 8)
+		bytes.push(parseInt(bits.substring(i, i + 8), 2));
+	return new Uint8Array(bytes);
 }
