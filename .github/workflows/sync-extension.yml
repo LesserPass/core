@@ -1,0 +1,52 @@
+
+name: Sync core to extension
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - core.js
+      - tests/core.js
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout core repository
+        uses: actions/checkout@v4
+
+      - name: Checkout extension repository
+        uses: actions/checkout@v4
+        with:
+          repository: LesserPass/extension
+          token: ${{ secrets.EXTENSION_SYNC_TOKEN }}
+          ref: main
+          path: extension
+
+      - name: Copy updated core and tests
+        run: |
+          cp core.js extension/core.js
+          mkdir -p extension/tests
+          cp tests/core.js extension/tests/core.js
+
+      - name: Create or update sync pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.EXTENSION_SYNC_TOKEN }}
+          path: extension
+          branch: automated/core-sync
+          base: main
+          title: "Sync core from upstream"
+          commit-message: "Sync core from upstream"
+          body: |
+            Automated pull request containing the latest core.js and its tests
+            from the core repository's main branch.
+
+            Please review the changes and verify extension compatibility.
+          delete-branch: true
