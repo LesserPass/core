@@ -1,5 +1,5 @@
 export class LPCore {
-	// This pretty much nees all permanent settings.
+	// This pretty much needs all permanent settings.
 	constructor(staticSecret, charset) {
 		this.charset = charset;
 		this.staticSecret = staticSecret;
