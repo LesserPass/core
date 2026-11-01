@@ -168,7 +168,64 @@ export class LPCore {
 			digits,
 			algorithm
 		);
+	};
+
+	/**
+	 * Encrypts a string using a password.
+	 * Works across sessions by generating a random salt and IV bundled with the output.
+	 *
+	 * @param {string} text - The text to encrypt
+	 * @param {string} masterPassword - The password to use
+	 * @returns {Promise<string>} - Base64 encoded string containing salt, iv, and ciphertext
+	 */
+	async encryptUsingMPW(text, masterPassword) {
+		const encoder = new TextEncoder();
+		const salt = crypto.getRandomValues(new Uint8Array(16));
+		const iv = crypto.getRandomValues(new Uint8Array(12));
+		const key = await getKey(masterPassword, salt);
+
+		const cipherText = await crypto.subtle.encrypt(
+			{ name: "AES-GCM", iv: iv },
+			key,
+			encoder.encode(text)
+		);
+
+		// Combine salt, iv, and ciphertext into a single buffer, then convert to Base64
+		const combined = new Uint8Array(salt.byteLength + iv.byteLength + cipherText.byteLength);
+		combined.set(salt, 0);
+		combined.set(iv, salt.byteLength);
+		combined.set(new Uint8Array(cipherText), salt.byteLength + iv.byteLength);
+
+		return btoa(String.fromCharCode(...combined));
 	}
+
+	/**
+	 * Decrypts a string encrypted with encryptUsingPW.
+	 *
+	 * @param {string} encryptedText - The Base64 encoded string from encryptUsingPW
+	 * @param {string} masterPassword - The password used to encrypt
+	 * @returns {Promise<string>} - The decrypted plain text string
+	 */
+	async decryptUsingMPW(encryptedText, masterPassword) {
+		const decoder = new TextDecoder();
+		const combined = Uint8Array.from(atob(encryptedText), c => c.charCodeAt(0));
+
+		// Extract salt (16 bytes), iv (12 bytes), and the actual ciphertext
+		const salt = combined.slice(0, 16);
+		const iv = combined.slice(16, 28);
+		const cipherText = combined.slice(28);
+
+		const key = await getKey(masterPassword, salt);
+
+		const decrypted = await crypto.subtle.decrypt(
+			{ name: "AES-GCM", iv: iv },
+			key,
+			cipherText
+		);
+
+		return decoder.decode(decrypted);
+	}
+
 };
 
 function modifyCharset(charset, includeLowerCase, includeUpperCase, includeNumbers, includeSymbols) {
@@ -299,7 +356,6 @@ function injectCharIntoPassword(password, charSubSet, ...usedCategories) {
 	return password;
 }
 
-
 // --- 2FA
 
 function base32Decode(input) {
@@ -321,4 +377,30 @@ function base32Decode(input) {
 	for (let i = 0; i + 8 <= bits.length; i += 8)
 		bytes.push(parseInt(bits.substring(i, i + 8), 2));
 	return new Uint8Array(bytes);
+}
+
+// --- En/Decrypt
+
+async function getKey(password, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt: salt,
+            iterations: 100000,
+            hash: "SHA-256"
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+    );
 }

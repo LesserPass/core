@@ -420,6 +420,21 @@ if (TOTP8.length == 8 && TOTP10.length == 10 && TOTP12.length == 12) {
     console.log("Failed TOTP Arbitrary length test.")
 }
 
+// --- Test for en- and decryption
+totalTests += 1
+let pw = "MySecurePass13!"
+let secretString = "hahaha &&53w53urne vergonnagi vemeup"
+
+let encrypted = await LPC.encryptUsingMPW(secretString,pw)
+let decrypted = await LPC.decryptUsingMPW(encrypted,pw)
+
+if (encrypted != secretString && decrypted == secretString) {
+    passedTests += 1
+} else {
+    console.log("Text En/Decryption failed")
+}
+
+
 // ---
 
 // Optional test
